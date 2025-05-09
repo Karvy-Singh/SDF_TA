@@ -1,6 +1,7 @@
 #ifndef CLASSES_HPP
 #define CLASSES_HPP
 
+#include "exceptions.hpp"
 #include "linkedlist.hpp"
 #include <ctime>
 #include <iostream>
@@ -8,6 +9,8 @@
 #include <stack>
 #include <string>
 using namespace std;
+
+constexpr size_t MAX_ISSUES = 3;
 
 class Book {
 private:
@@ -65,6 +68,7 @@ private:
 
 public:
   // Constructors
+  static int issues;
   Member() = default;
 
   Member(const string &id, const string &nm, const string &em, const string &ph)
@@ -82,6 +86,7 @@ public:
   // Borrow book (adds to borrowedBooks list)
   void borrowBook(const Book &book) {
     if (book.getAvailability()) {
+      issues++;
       borrowedBooks.addback(book);
       cout << "Book borrowed: " << book.getTitle() << " by " << name << "\n";
     } else {
@@ -116,6 +121,7 @@ public:
     return os;
   }
 };
+int Member::issues = 0;
 
 class Librarian {
 private:
@@ -214,10 +220,17 @@ public:
     Member *m = genericSearch<Member, string>(
         members, memberID,
         [](const Member &mem, const string &id) { return mem.getID() == id; });
+    if (!m)
+      throw InvalidMemberIDException(memberID);
 
     Book *b = genericSearch<Book, string>(
         books, bookID,
         [](const Book &book, const string &id) { return book.getID() == id; });
+    if (!b || !b->getAvailability())
+      throw BookNotAvailableException(bookID);
+
+    if (m->issues >= MAX_ISSUES)
+      throw IssueLimitExceededException(MAX_ISSUES);
 
     if (m && b && b->getAvailability()) {
       m->borrowBook(*b);
